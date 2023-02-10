@@ -1,20 +1,24 @@
 const { firefox } = require("@playwright/test");
 
 const { AppPatcher } = require("./utils/AppPatcher");
+const { Args, ArgTypes } = require("./utils/Args");
 const { Proxy } = require("./utils/Proxy");
-
-const TOTAL_ATTEMPTS = 4;
 
 Array.prototype.choice = function () {
   return this[Math.random() * this.length];
 };
 
+prepareEnvironment();
+startVoting();
+
 let attempt = 0;
 
-const vote = async () => {
+async function vote() {
   const browser = await firefox.launch({
-    proxy: await new Proxy().getFreeProxy(),
-    headless: process.env.HEADLESS === "true",
+    proxy: Args.get(ArgTypes.IGNORE_PROXY, false)
+      ? void 0
+      : await new Proxy().getFreeProxy(),
+    headless: Args.get(ArgTypes.HEADLESS, true),
   });
 
   const context = await browser.newContext();
@@ -51,21 +55,41 @@ const vote = async () => {
   });
 
   await Promise.race([
-    page.goto(`https://strawpoll.com/polls/${process.env.POOL_ID}`),
+    page.goto(
+      `https://strawpoll.com/polls/${Args.get(
+        ArgTypes.POLL_ID,
+        shouldBeSpecifiedThrownError
+      )}`
+    ),
     () => setTimeout(() => page.evaluate(() => window.stop(), 2000)),
   ]);
 
-  await page.click(`#option-${process.env.OPTION_ID}`);
+  await page.click(
+    `#option-${Args.get(ArgTypes.OPTION_ID, shouldBeSpecifiedThrownError)}`
+  );
   await page.click("form > div:nth-child(9) > div > div:nth-child(2) > button");
 
   await page.waitForSelector("button.custom-text");
 
-  console.log(`[${++attempt}/${TOTAL_ATTEMPTS}]: vote successful`);
+  console.log(
+    `[${++attempt}/${Args.get(ArgTypes.ATTEMPTS, 4)}]: vote successful`
+  );
 
   await context.close();
   await browser.close();
-};
+}
+function prepareEnvironment() {}
 
-(async () => {
-  await Promise.allSettled(new Array(TOTAL_ATTEMPTS).fill(new Promise(vote)));
-})();
+async function startVoting() {
+  await Promise.allSettled(
+    new Array(Args.get(ArgTypes.ATTEMPTS, 4)).fill(new Promise(vote))
+  );
+}
+
+function shouldBeSpecifiedThrownError(argType) {
+  throw new Error(
+    `missing required argument. argument should be specified with ${argType.join(
+      " or "
+    )}`
+  );
+}
