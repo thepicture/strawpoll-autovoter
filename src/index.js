@@ -17,7 +17,7 @@ async function vote() {
   const browser = await firefox.launch({
     proxy: Args.get(ArgTypes.IGNORE_PROXY, false)
       ? void 0
-      : await new Proxy().getFreeProxy(),
+      : await new Proxy().getProxy(),
     headless: Args.get(ArgTypes.HEADLESS, true),
   });
 
