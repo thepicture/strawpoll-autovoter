@@ -4,6 +4,8 @@ class ArgTypes {
   static HEADLESS = ["--headless", "-h"];
   static ATTEMPTS = ["--attempts", "-a"];
   static IGNORE_PROXY = ["--ignore-proxy", "-i"];
+  static HTTP_PROXY = ["--http-proxy", "-t"];
+  static PROXY_CREDENTIALS = ["--proxy-creds", "-c"];
 }
 
 class Args {
@@ -15,10 +17,8 @@ class Args {
 
   static get(argType, defaultValue) {
     const index = process.argv.findIndex((value) => argType.includes(value));
-    const value =
-      process.argv[
-        process.argv.findIndex((value) => argType.includes(value)) + 1
-      ];
+    const value = process.argv[index + 1];
+    console.log(argType, index, value);
 
     if (Args._isEntryValid(value, index)) {
       return Args._cast(value);
